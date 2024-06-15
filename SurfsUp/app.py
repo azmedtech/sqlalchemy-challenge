@@ -1,4 +1,4 @@
-# Import the dependencies.
+# import the dependencies
 import datetime as dt 
 import numpy as np 
 from sqlalchemy.ext.automap import automap_base 
@@ -22,12 +22,12 @@ Base = automap_base()
 # ORM stands for Object-Relational Mapping. It is a programming technique used to convert data between incompatible type systems in object-oriented programming languages. Essentially, ORM allows you to interact with a relational database using an object-oriented paradigm. Here’s a detailed explanation:
 Base.prepare(autoload_with=engine)
 
-# Save references to each table
-# Assign Measurement and Station classes to variables with same names
+# save references to each table
+# assign Measurement and Station classes to variables with same names
 Measurement = Base.classes.measurement
 Station = Base.classes.station
 
-# Create our session (link) from Python to the DB
+# create our session (link) from Python to the DB
 session = Session(engine)
 
 #################################################
@@ -60,12 +60,12 @@ def welcome():
 def precipitation():
     """Return the precipitation data for the last year"""
 
-    # Calculate the date one year from the last date in data set.
+    # calculate the date one year from the last date in data set.
     one_year_ago = dt.date(2017, 8, 23) - dt.timedelta(days=365)
 
-    # Perform a query to retrieve the date and precipitation scores
-    last_12_months_data = session.query(Measurement.date, Measurement.prcp) \
-    .filter(Measurement.date >= one_year_ago).all()
+    # perform a query to retrieve the date and precipitation scores
+    last_12_months_data = session.query(Measurement.date, Measurement.prcp).\
+    filter(Measurement.date >= one_year_ago).all()
 
     # close the session
     session.close()
@@ -80,9 +80,9 @@ def precipitation():
 def active_stations():
     """Return the list of stations from the dataset"""
 
-    # Perform a query to retrieve the active stations 
+    # perform a query to retrieve the active stations 
     active_stations_query = session.query(Station.station).all()
-
+    
     # close the session
     session.close()
 
@@ -98,10 +98,10 @@ def active_stations():
 def date_temp():
     """Returns the date and temperature observations from the most active stations over the previous year"""
 
-    # Calculate the date one year from the last date in data set.
+    # calculate the date one year from the last date in data set.
     one_year_ago = dt.date(2017, 8, 23) - dt.timedelta(days=365)
 
-    # Perform a query to retrieve the date and precipitation observations over the previous year
+    # perform a query to retrieve the date and precipitation observations over the previous year
     active_stations = session.query(Station.station, func.count(Measurement.station)).\
         filter(Station.station == Measurement.station).\
         group_by(Station.station).\
@@ -119,6 +119,50 @@ def date_temp():
     session.close()
 
     # create and return a JSON list of the temperature observations over the previous year
-    tobs_list = [{date: tobs} for date, tobs in tobs_data}
+    tobs_list = [{date: tobs} for date, tobs in tobs_data]
 
     return jsonify(tobs_list)
+
+# define the route for the specified start date
+@app.route('/api/v1.0/<start>')
+def temp_start(start):
+    """Returns the minimum, maximum, and average temperature observations from a given start date through the end of the dataset"""
+
+    # define the start date
+    start_date = dt.datetime.strptime(start, '%Y-%m-%d')
+    
+    # perform a query to pull the data for the approrpaite date range
+    temp_data = session.query(func.min(Measurement.tobs), func.max(Measurement.tobs), func.avg(Measurement.tobs))./
+        filter(Measurement.date >= start_date).all()
+    
+    # close the session
+    session.close()
+
+    # create and return a JSON list of the temperature observations 
+    temp_data_dict = {"Tmin": temp_data[0][0], "Tmax": temp_data[0][1], "Tavg": temp_data[0][2]}
+    
+    return jsonify(temp_data_dict)
+
+# define the route for the specified start and end date
+@app.route('/api/v1.0/<start>/<end>')
+def temp_start_end(start, end):
+    """Returns the minimum, maximum, and average temperature observations between given start and end dates"""
+
+    # define the start and end dates
+    start_date = dt.datetime.strptime(start, '%Y-%m-%d')
+    end_date = dt.datetime.strptime(end, '%Y-%m-%d')
+    
+    # perform a query to pull the data for the approrpaite date range
+    temp_range = session.query(func.min(Measurement.tobs), func.max(Measurement.tobs), func.avg(Measurement.tobs))./
+        filter(Measurement.date >= start_date).filter(Measurement.date <= end_date).all()
+    
+    # close the session
+    session.close()
+
+    # create and return a JSON list of the temperature observations 
+    temp_range_dict = {"Tmin": temp_range[0][0], "Tmax": temp_range[0][1], "Tavg": temp_range[0][2]}
+    
+    return jsonify(temp_range_dict)
+
+if __name__ == '__main__':
+    app.run(debug=True)
