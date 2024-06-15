@@ -58,7 +58,7 @@ def welcome():
 # define precipitation route
 @app.route('/api/v1.0/precipitation')
 def precipitation():
-    """Return the precipitation data for the last year"""
+    """Returns the precipitation data for the last year"""
 
     # calculate the date one year from the last date in data set.
     one_year_ago = dt.date(2017, 8, 23) - dt.timedelta(days=365)
@@ -78,7 +78,7 @@ def precipitation():
 # define stations route
 @app.route('/api/v1.0/stations')
 def active_stations():
-    """Return the list of stations from the dataset"""
+    """Returns the list of stations from the dataset"""
 
     # perform a query to retrieve the active stations 
     active_stations_query = session.query(Station.station).all()
@@ -96,7 +96,7 @@ def active_stations():
 # define dates and temperatures of most active stations route
 @app.route('/api/v1.0/tobs')
 def date_temp():
-    """Returns the date and temperature observations from the most active stations over the previous year"""
+    """Returns the date and temperature observations from the most active station over the previous year"""
 
     # calculate the date one year from the last date in data set.
     one_year_ago = dt.date(2017, 8, 23) - dt.timedelta(days=365)
